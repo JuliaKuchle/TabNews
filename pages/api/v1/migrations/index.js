@@ -3,7 +3,7 @@ import { join } from "node:path";
 import database from "infra/database.js";
 
 export default async function migrations(request, response) {
-  const dbClient = await database.getNewClient();
+  let dbClient;
 
   const defaultMigrationsOptions = {
     dbClient: dbClient,
@@ -16,12 +16,14 @@ export default async function migrations(request, response) {
   };
 
   if (request.method === "GET") {
+    dbClient = await database.getNewClient();
     const pendingMigrations = await migrationRunner(defaultMigrationsOptions);
     await dbClient.end();
     return response.status(200).json(pendingMigrations);
   }
 
   if (request.method === "POST") {
+    dbClient = await database.getNewClient();
     const migratedMigrations = await migrationRunner({
       ...defaultMigrationsOptions,
       dryRun: false,
