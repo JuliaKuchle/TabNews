@@ -1,0 +1,47 @@
+const { spawn, spawnSync } = require("child_process");
+
+function runSync(command) {
+  const result = spawnSync(command, { stdio: "inherit", shell: true });
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+}
+
+function runWithCleanup({ setup = [], main, cleanupScript }) {
+  let cleanedUp = false;
+  let mainStarted = false;
+
+  function cleanup() {
+    if (cleanedUp) return;
+    cleanedUp = true;
+    console.log("\nStopping services...");
+    spawnSync("npm", ["run", cleanupScript], { stdio: "inherit", shell: true });
+  }
+
+  if (process.platform === "win32") {
+    require("readline")
+      .createInterface({ input: process.stdin, output: process.stdout })
+      .on("SIGINT", () => process.emit("SIGINT"));
+  }
+
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    process.on(signal, () => {
+      if (mainStarted) cleanup();
+      process.exit();
+    });
+  }
+
+  for (const command of setup) {
+    runSync(command);
+  }
+
+  mainStarted = true;
+  const child = spawn(main, { stdio: "inherit", shell: true });
+
+  child.on("close", (code) => {
+    cleanup();
+    process.exit(code ?? 0);
+  });
+}
+
+module.exports = { runWithCleanup };
