@@ -38,8 +38,8 @@ export class MethodNotAllowedError extends Error {
 }
 
 export class ServiceError extends Error {
-  constructor({ cause }) {
-    super("Serviço indisponível no momento.", {
+  constructor({ message, cause }) {
+    super(message || "Serviço indisponível no momento.", {
       cause,
     });
     this.name = "ServiceError";
